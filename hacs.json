@@ -1,0 +1,13 @@
+{
+  "name": "Xen Orchestra",
+  "repository": "https://github.com/francis-chiew/ha-xen-orchestra",
+  "homeassistant": "2023.11.0",
+  "version": "1.0.0",
+  "slug": "xen_orchestra",
+  "description": "A comprehensive Home Assistant integration for managing Xen Orchestra (XenServer/XCP-ng) environments. Includes ok looking dashboard cards (requires Mushroom Cards & Auto-entities).",
+  "documentation": "https://github.com/francis-chiew/ha-xen-orchestra/docs/installation.md",
+  "issues": "https://github.com/francis-chiew/ha-xen-orchestra/issues",
+  "dependencies": [],
+  "codeowners": ["@francis-chiew"],
+  "requirements": []
+}

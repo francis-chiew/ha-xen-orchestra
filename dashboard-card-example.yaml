@@ -1,0 +1,193 @@
+# 🖥️ Xen Orchestra Dynamic Dashboard Card
+# 
+# REQUIRED DEPENDENCIES (Install via HACS first):
+# 1. Mushroom Cards: https://github.com/piitaya/lovelace-mushroom
+# 2. Auto-entities: https://github.com/thomasloven/lovelace-auto-entities
+#
+# INSTALLATION:
+# 1. Install the dependencies above via HACS → Frontend
+# 2. Restart Home Assistant  
+# 3. Copy this YAML and paste it into your Home Assistant dashboard
+# 4. No configuration needed - automatically detects your Xen Orchestra integration!
+#
+# FEATURES:
+# ✅ Auto-discovers all hosts and VMs
+# ✅ Color-coded resource monitoring  
+# ✅ VM power controls with safety exclusions
+# ✅ Emergency shutdown buttons
+# ✅ Real-time infrastructure summary
+
+type: vertical-stack
+cards:
+  - type: markdown
+    content: |
+      # 🖥️ Xen Orchestra Infrastructure
+      **Auto-detected** - No configuration required!
+      
+  - type: custom:auto-entities
+    card:
+      type: entities
+      title: 🖥️ Host Resources
+    filter:
+      include:
+        - domain: sensor
+          entity_id: "*cpu_usage*"
+          options:
+            type: custom:mushroom-template-card
+            primary: >
+              {% set host_name = state_attr(entity, 'friendly_name').replace('
+              CPU Usage', '') %}
+
+              🖥️ {{ host_name }}
+            secondary: >
+              {% set cpu_entity = entity %}
+
+              {% set memory_entity = cpu_entity.replace('cpu_usage',
+              'memory_usage') %}
+
+              {% set cpu = states(cpu_entity) | float(0) %}
+
+              {% set memory = states(memory_entity) | float(0) %}
+
+              💾 CPU: {{ cpu }}% | 🧠 RAM: {{ memory }}%
+            icon: mdi:server
+            icon_color: |
+              {% set cpu = states(entity) | float(0) %}
+              {% if cpu > 80 %}
+                red
+              {% elif cpu > 60 %}
+                orange
+              {% else %}
+                green
+              {% endif %}
+            badge_icon: >
+              {% set memory_entity = entity.replace('cpu_usage', 'memory_usage')
+              %}
+
+              {% set memory = states(memory_entity) | float(0) %}
+
+              {% if memory > 80 %}
+                mdi:alert
+              {% else %}
+                ""
+              {% endif %}
+            badge_color: >
+              {% set memory_entity = entity.replace('cpu_usage', 'memory_usage')
+              %}
+
+              {% set memory = states(memory_entity) | float(0) %}
+
+              {% if memory > 90 %}
+                red
+              {% else %}
+                ""
+              {% endif %}
+            multiline_secondary: true
+            tap_action:
+              action: more-info
+            hold_action:
+              action: more-info
+    sort:
+      method: friendly_name
+  - type: custom:auto-entities
+    card:
+      type: entities
+      title: 💻 Virtual Machines
+    filter:
+      include:
+        - domain: switch
+          device_model: Virtual Machine
+          options:
+            secondary_info: state
+      exclude:
+        - entity_id: "*xoa*"
+        - entity_id: "*home*"
+    sort:
+      method: friendly_name
+  - type: markdown
+    content: |
+      ### 🚨 Emergency Controls
+  - type: custom:auto-entities
+    card:
+      type: entities
+      title: 🚨 Emergency Controls
+    filter:
+      include:
+        - domain: button
+          device_model: Virtual Machine
+      exclude:
+        - entity_id: "*xoa*"
+        - entity_id: "*home*"
+    sort:
+      method: friendly_name
+  - type: horizontal-stack
+    cards:
+      - type: custom:mushroom-template-card
+        primary: Virtual Machines
+        secondary: >
+          {% set all_switches = states.switch | list %} {% set power_switches =
+          all_switches | selectattr('entity_id', 'search', '_power$') | list %}
+          {% set running = power_switches | selectattr('state', 'eq', 'on') |
+          list | length %} {% set total = power_switches | length %} {{ running
+          }} on / {{ total }} total
+        icon: mdi:server-network
+        color: >
+          {% set all_switches = states.switch | list %} {% set power_switches =
+          all_switches | selectattr('entity_id', 'search', '_power$') | list %}
+          {% set running = power_switches | selectattr('state', 'eq', 'on') |
+          list | length %} {% set total = power_switches | length %} {% if total
+          == 0 %}grey {% elif running == total %}green {% elif running > 0
+          %}orange {% else %}red {% endif %}
+        features_position: bottom
+      - type: custom:mushroom-template-card
+        primary: Average CPU
+        secondary: >
+          {% set all_sensors = states.sensor | list %} {% set cpu_sensors =
+          all_sensors | selectattr('entity_id', 'search', '_cpu_usage$') | list
+          %} {% if cpu_sensors | length > 0 %}
+            {% set cpu_values = cpu_sensors | map(attribute='state') | map('float', 0) | list %}
+            {% set avg_cpu = (cpu_values | sum / cpu_values | length) | round(1) %}
+            {{ avg_cpu }}%
+          {% else %}
+            N/A
+          {% endif %}
+        icon: mdi:cpu-64-bit
+        icon_color: >
+          {% set all_sensors = states.sensor | list %} {% set cpu_sensors =
+          all_sensors | selectattr('entity_id', 'search', '_cpu_usage$') | list
+          %} {% if cpu_sensors | length > 0 %}
+            {% set cpu_values = cpu_sensors | map(attribute='state') | map('float', 0) | list %}
+            {% set avg_cpu = cpu_values | sum / cpu_values | length %}
+            {% if avg_cpu > 80 %}red
+            {% elif avg_cpu > 60 %}orange
+            {% else %}green
+            {% endif %}
+          {% else %}
+            grey
+          {% endif %}
+      - type: custom:mushroom-template-card
+        primary: Average RAM
+        secondary: >
+          {% set all_sensors = states.sensor | list %} {% set mem_sensors =
+          all_sensors | selectattr('entity_id', 'search', '_memory_usage$') |
+          list %} {% if mem_sensors | length > 0 %}
+            {% set mem_values = mem_sensors | map(attribute='state') | map('float', 0) | list %}
+            {% set avg_mem = (mem_values | sum / mem_values | length) | round(1) %}
+            {{ avg_mem }}%
+          {% else %}
+            N/A
+          {% endif %}
+        icon: mdi:memory
+        icon_color: >
+          {% set all_sensors = states.sensor | list %} {% set mem_sensors =
+          all_sensors | selectattr('entity_id', 'search', '_memory_usage$') |
+          list %} {% if mem_sensors | length > 0 %}
+            {% set mem_values = mem_sensors | map(attribute='state') | map('float', 0) | list %}
+            {% set avg_mem = mem_values | sum / mem_values | length %}
+            {% if avg_mem > 80 %}red
+            {% elif avg_mem > 60 %}orange
+            {% else %}green
+            {% endif %}
+          {% else %}
+            grey
+          {% endif %}
